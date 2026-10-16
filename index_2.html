@@ -1,0 +1,435 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light">
+<title>The WayWard · Open House RSVP</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lustria&family=Merriweather:wght@400;700&display=swap">
+<style>
+  :root{
+    --forest:#17302C; --sage:#8FA98F; --sage-soft:#DCE6DA; --cream:#F6F2EA; --paper:#FFFFFF;
+    --ink:#1E2420; --muted:#56615A; --navy:#1F2E44; --line:#D9DED6;
+    --flag-bg:#F7E7E1; --flag-ink:#6E2B19;
+  }
+  *{ box-sizing:border-box; }
+  html{ -webkit-text-size-adjust:100%; }
+  body{ margin:0; background:var(--cream); color:var(--ink); font-family:Merriweather,Georgia,serif; font-size:17px; line-height:1.6; min-height:100vh; overflow-x:hidden; }
+  .gutter{ padding-left:max(16px, env(safe-area-inset-left,0px)); padding-right:max(16px, env(safe-area-inset-right,0px)); }
+  .band{ background:var(--forest); color:var(--cream); padding-block:16px; text-align:center; }
+  .wordmark{ font-family:Lustria,Georgia,serif; letter-spacing:.14em; text-transform:uppercase; font-size:18px; }
+  .sub{ font-size:12px; letter-spacing:.14em; text-transform:uppercase; color:var(--sage-soft); margin-top:4px; }
+  .wrap{ max-width:640px; margin:0 auto; padding-block:18px 40px; }
+  .progress{ display:flex; gap:6px; margin-bottom:18px; }
+  .progress span{ flex:1; height:4px; border-radius:2px; background:var(--line); }
+  .progress span.on{ background:var(--forest); }
+  .card{ background:var(--paper); border:1px solid var(--line); border-radius:8px; padding:24px 20px 22px; }
+  .kicker{ font-size:12px; letter-spacing:.16em; text-transform:uppercase; color:var(--muted); margin:0 0 8px; }
+  h1{ font-family:Lustria,Georgia,serif; font-weight:400; font-size:29px; line-height:1.2; margin:0 0 10px; text-wrap:balance; }
+  .lede{ color:var(--muted); margin:0 0 18px; font-size:16px; }
+  .q{ font-family:Lustria,Georgia,serif; font-size:20px; line-height:1.3; margin:22px 0 4px; }
+  label.f{ display:block; font-size:14px; color:var(--muted); margin:16px 0 6px; }
+  input,textarea{ width:100%; font:inherit; font-size:17px; color:var(--ink); background:var(--cream); border:1px solid var(--line); border-radius:6px; padding:14px; }
+  textarea{ min-height:96px; resize:vertical; }
+  input:focus,textarea:focus{ outline:2px solid var(--sage); outline-offset:1px; background:var(--paper); }
+  .check{ display:flex; gap:10px; align-items:flex-start; margin-top:18px; font-size:15px; color:var(--muted); line-height:1.4; }
+  .check input{ width:auto; flex:none; margin-top:4px; }
+  .err{ color:var(--flag-ink); font-size:14px; min-height:22px; margin:10px 0 0; }
+  .opts{ display:grid; gap:10px; margin-top:4px; }
+  .opt{ width:100%; min-height:62px; text-align:left; font:inherit; font-size:16px; line-height:1.35; color:var(--navy); background:var(--paper); border:1.5px solid var(--navy); border-radius:6px; padding:12px 16px; cursor:pointer; }
+  .opt small{ display:block; color:var(--muted); font-size:13px; margin-top:2px; }
+  .opt[aria-pressed="true"]{ background:var(--navy); color:#FFFFFF; }
+  .opt[aria-pressed="true"] small{ color:var(--sage-soft); }
+  .btn,.opt,.link{ -webkit-tap-highlight-color:transparent; }
+  :focus-visible{ outline:2px solid var(--sage); outline-offset:2px; }
+  .actions{ display:grid; gap:10px; margin-top:22px; }
+  .btn{ width:100%; min-height:56px; font:inherit; font-size:16px; letter-spacing:.06em; text-transform:uppercase; color:#FFFFFF; background:var(--navy); border:0; border-radius:6px; cursor:pointer; }
+  .btn:disabled{ opacity:.6; cursor:wait; }
+  .btn.ghost{ background:transparent; color:var(--navy); border:1.5px solid var(--navy); }
+  .letter{ font-size:17px; margin:0 0 12px; }
+  .note{ background:var(--sage-soft); color:var(--forest); border-radius:6px; padding:14px 16px; font-size:15px; margin:16px 0 22px; }
+  .flag{ background:var(--flag-bg); color:var(--flag-ink); border-radius:8px; padding:20px; font-size:16px; white-space:pre-line; }
+  .summary{ display:grid; gap:12px; margin:16px 0; padding:16px; border:1px solid var(--line); border-radius:8px; background:var(--cream); }
+  .summary > div{ display:grid; grid-template-columns:84px minmax(0,1fr); gap:12px; font-size:16px; line-height:1.4; }
+  .summary span{ color:var(--muted); font-size:14px; padding-top:2px; }
+  .summary b{ font-weight:700; overflow-wrap:anywhere; }
+  [hidden]{ display:none !important; }
+</style>
+</head>
+<body>
+
+<header class="band"><div class="gutter">
+  <div class="wordmark">The Supernova Life</div>
+  <div class="sub">The WayWard</div>
+</div></header>
+
+<main class="wrap gutter">
+  <div class="progress" id="progress" hidden></div>
+  <section class="card" id="screen" aria-live="polite"></section>
+</main>
+
+<script>
+(function(){
+  /* ---- Configuration: set before publishing ---- */
+  var API = 'https://mayamarcus007.app.n8n.cloud/webhook';
+  var KEY = 'e36557fa2f64dc94cda109d022a14209';          // shared key, must match the n8n check
+  var TIMEZONE = 'Asia/Dubai';                           // UAE time, GST (UTC+4)
+
+  var CRISIS = /suicid|kill myself|end my life|end it all|self[- ]?harm|hurt myself|cut myself|overdose|want to die|don.?t want to (live|be here|wake up)|no reason to live|better off dead/i;
+  var STEPS = ['name','reach','gathering','location','calling','referred','founder'];
+  var GATHERINGS = {
+    abudhabi: { label: 'November 25 in Abu Dhabi', when: 'Wednesday 25 November 2026 · In person · 8:30 pm UAE time (GST)' },
+    online:   { label: 'December 30 online',       when: 'Wednesday 30 December 2026 · Online · 8:30 pm UAE time (GST) · Provisional' },
+    both:     { label: 'Both, please!',            when: 'Both gatherings' }
+  };
+
+  var screen = document.getElementById('screen');
+  var progress = document.getElementById('progress');
+  var s = {};
+  var current = 'welcome';
+  var trail = [];
+  var sessionId = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : String(Date.now()) + Math.random().toString(16).slice(2);
+  var queue = Promise.resolve();   // sends one save at a time, in order
+
+  function el(tag, cls, text){ var e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+  function isCrisis(t){ return CRISIS.test(t || ''); }
+  function go(step){ trail.push(current); current = step; render(); }
+  function back(){ if (trail.length){ current = trail.pop(); render(); } }
+  function restart(){ s = {}; trail = []; current = 'welcome'; render(); }
+  function crisis(){ save('crisis_flag'); trail.push(current); current = 'crisis'; render(); }
+
+  /* International mobile numbers, with country code */
+  function cleanPhone(v){
+    var d = (v || '').replace(/[\s\-().]/g, '');
+    if (d.indexOf('00') === 0) d = '+' + d.slice(2);
+    return /^\+[1-9]\d{7,14}$/.test(d) ? d : '';
+  }
+  function fmtSlot(iso){
+    return new Date(iso).toLocaleString('en-GB', { timeZone: TIMEZONE, weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit', hour12: false }) + ' UAE time (GST)';
+  }
+  function tier(){
+    if (s.booked) return 'Warm, booked';
+    if (s.calling) return 'Warm';
+    return 'Curious';
+  }
+
+  /* Every step is saved to the sheet as it happens. Resolves with the server's reply for this save. */
+  function save(stage, extra){
+    var body = Object.assign({
+      stage: stage,
+      session_id: sessionId,
+      at: new Date().toISOString(),
+      full_name: s.name || '',
+      whatsapp: s.wa || '',
+      email: s.email || '',
+      gathering: s.gathering || '',
+      location: s.location || '',
+      calling: s.calling || '',
+      craving: s.craving || '',
+      referred: s.referred || '',
+      share_more: s.more || '',
+      tier: tier(),
+      slot: s.slot ? s.slot.start : ''
+    }, extra || {});
+    var sent = queue.then(function(){
+      return fetch(API + '/wayward-intake', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-wayward-key': KEY },
+        body: JSON.stringify(body)
+      }).then(function(r){ return r.json(); });
+    });
+    queue = sent.catch(function(){});
+    return sent.catch(function(){ return { status: 'offline' }; });
+  }
+
+  function slotsFetch(){
+    return fetch(API + '/wayward-slots', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-wayward-key': KEY },
+      body: JSON.stringify({ session_id: sessionId })
+    }).then(function(r){ return r.json(); });
+  }
+  function bookFetch(slot){
+    return fetch(API + '/wayward-book', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-wayward-key': KEY },
+      body: JSON.stringify({
+        session_id: sessionId,
+        start: slot.start, end: slot.end,
+        name: s.name || '', first_name: s.first || '',
+        email: s.email || '', phone: s.wa || '',
+        tier: tier(), note: s.calling || ''
+      })
+    }).then(function(r){ return r.json(); });
+  }
+
+  function render(){
+    screen.innerHTML = '';
+    var q = STEPS.indexOf(current);
+    progress.hidden = q < 0;
+    progress.innerHTML = '';
+    if (q >= 0) STEPS.forEach(function(_, i){ progress.appendChild(el('span', i <= q ? 'on' : '')); });
+    BUILD[current]();
+  }
+
+  function head(kicker, title){
+    screen.appendChild(el('p', 'kicker', kicker));
+    screen.appendChild(el('h1', '', title));
+  }
+  function lede(text){ screen.appendChild(el('p', 'lede', text)); }
+  function question(text){ screen.appendChild(el('p', 'q', text)); }
+  function field(text, node){ screen.appendChild(el('label', 'f', text)); screen.appendChild(node); }
+  function input(type, ph, val){ var i = el('input'); i.type = type; i.placeholder = ph; i.value = val || ''; return i; }
+  function area(ph, val){ var t = el('textarea'); t.placeholder = ph; t.value = val || ''; return t; }
+  function button(label, cls, fn){ var b = el('button', cls, label); b.type = 'button'; b.onclick = fn; return b; }
+  function actions(){ var a = el('div', 'actions'); screen.appendChild(a); return a; }
+  function backButton(a){ if (trail.length) a.appendChild(button('Back', 'btn ghost', back)); }
+  function choices(list, selected, onPick){
+    var box = el('div', 'opts');
+    list.forEach(function(o){
+      var b = el('button', 'opt');
+      b.type = 'button';
+      b.setAttribute('aria-pressed', String(selected === o.key));
+      b.appendChild(document.createTextNode(o.label));
+      if (o.when) b.appendChild(el('small', '', o.when));
+      b.onclick = function(){ onPick(o.key); };
+      box.appendChild(b);
+    });
+    screen.appendChild(box);
+    return box;
+  }
+
+  var BUILD = {
+    welcome: function(){
+      head("You're invited", 'A little curiosity brought you here. We like that.');
+      lede('Welcome to The WayWard, a community for women who want more friendship, freedom, expression, adventure, and room to be all of who they are.');
+      lede("Before we open the doors, we'd love to learn a little about you. This will only take a few minutes.");
+      lede("I'm The WayWard's automated assistant, here to help you find your way in.");
+      actions().appendChild(button("Let's begin", 'btn', function(){ go('name'); }));
+    },
+
+    name: function(){
+      head('First things first', 'What should we call you?');
+      lede('Your first name will do beautifully.');
+      var i = input('text', 'First name', s.first); field('First name', i);
+      var e = el('p', 'err', ''); screen.appendChild(e);
+      var a = actions();
+      a.appendChild(button('Continue', 'btn', function(){
+        var v = i.value.trim();
+        if (!v){ e.textContent = "We'd love to know what to call you!"; return; }
+        if (isCrisis(v)) return crisis();
+        s.first = v.split(/\s+/)[0].slice(0, 40);
+        s.name = s.first;
+        go('reach');
+      }));
+      backButton(a);
+    },
+
+    reach: function(){
+      head('Keep in touch', 'Where can we reach you?');
+      lede("We'll use these details to send you everything you need for the Open House, including the location and a little mystery to prepare for.");
+      var w = input('tel', '+971 50 123 4567', s.wa); field('WhatsApp number (required, with country code)', w);
+      var m = input('email', 'you@example.com', s.email); field('Email address (required)', m);
+      var c = el('label', 'check');
+      var cb = el('input'); cb.type = 'checkbox'; cb.checked = !!s.waOk;
+      c.appendChild(cb);
+      c.appendChild(document.createTextNode(' Yes, I would welcome a gentle WhatsApp reminder before the gathering.'));
+      screen.appendChild(c);
+      var e = el('p', 'err', ''); screen.appendChild(e);
+      var a = actions();
+      a.appendChild(button('Continue', 'btn', function(){
+        var p = cleanPhone(w.value);
+        if (!p){ e.textContent = 'Please enter a valid mobile number, including your country code.'; return; }
+        var em = m.value.trim();
+        if (!/^\S+@\S+\.\S+$/.test(em)){ e.textContent = "That email doesn't look quite right. Mind checking it?"; return; }
+        s.wa = p; s.email = em; s.waOk = cb.checked;
+        save('reach_done');
+        go('gathering');
+      }));
+      backButton(a);
+    },
+
+    gathering: function(){
+      head('The invitation', "Come see what we're creating.");
+      lede('The best way to understand The WayWard is to experience it for yourself.');
+      lede("Our Open Houses are free, intimate gatherings where you can meet the women, experience a little WayWard magic, and decide whether this community feels like somewhere you'd like to belong.");
+      lede('And because life could use a little more mystery, the exact location and everything you need will be revealed 48 hours beforehand.');
+      question('Which gathering is calling your name?');
+      choices([
+        { key: 'abudhabi', label: GATHERINGS.abudhabi.label, when: GATHERINGS.abudhabi.when },
+        { key: 'online',   label: GATHERINGS.online.label,   when: GATHERINGS.online.when },
+        { key: 'both',     label: GATHERINGS.both.label,     when: GATHERINGS.both.when }
+      ], s.gathering, function(k){ s.gathering = k; save('gathering_chosen'); go('location'); });
+      var a = actions(); backButton(a);
+    },
+
+    location: function(){
+      head('Where in the world?', 'Where will you be joining us from?');
+      choices([
+        { key: 'abudhabi', label: "I'm in Abu Dhabi." },
+        { key: 'intl',     label: "I'm joining from somewhere else in the world." }
+      ], s.location, function(k){ s.location = k; save('location_chosen'); go('calling'); });
+      var a = actions(); backButton(a);
+    },
+
+    calling: function(){
+      head('A little about you', 'What sparked your curiosity?');
+      lede('We believe the most interesting women are the ones who are still discovering who they are.');
+      lede("We'd love a little glimpse into your world, but there's no pressure to have the perfect answer.");
+      var c = area("Share as much or as little as you'd like.", s.calling); field('What drew you to The WayWard?', c);
+      var k = area("Share as much or as little as you'd like.", s.craving); field('What are you craving more of in your life these days?', k);
+      var e = el('p', 'err', ''); screen.appendChild(e);
+      var a = actions();
+      a.appendChild(button('Continue', 'btn', function(){
+        var x = c.value.trim(), y = k.value.trim();
+        if (isCrisis(x) || isCrisis(y)) return crisis();
+        s.calling = x; s.craving = y;
+        save('calling_done').then(function(r){
+          if (r && r.status === 'crisis') return crisis();
+          go('referred');
+        });
+      }));
+      backButton(a);
+    },
+
+    referred: function(){
+      head('One last thing', 'Did someone send you our way?');
+      var keys = ['yes', 'no'];
+      var box = choices([
+        { key: 'yes', label: 'Yes, another woman told me about The WayWard.' },
+        { key: 'no',  label: 'Nope, I found my own way here!' }
+      ], s.referred, function(k){
+        s.referred = k;
+        Array.prototype.forEach.call(box.children, function(b, i){ b.setAttribute('aria-pressed', String(keys[i] === k)); });
+      });
+      var t = area('', s.more); field("Anything else you'd like us to know?", t);
+      var e = el('p', 'err', ''); screen.appendChild(e);
+      var a = actions();
+      var confirm = button('Confirm my RSVP', 'btn', function(){
+        if (!s.referred){ e.textContent = 'Please choose one of the options above.'; return; }
+        var v = t.value.trim();
+        if (isCrisis(v)) return crisis();
+        s.more = v;
+        confirm.disabled = true;
+        confirm.textContent = 'Saving your RSVP…';
+        /* The RSVP is only confirmed once the server has saved it */
+        save('rsvp_confirmed').then(function(r){
+          if (r && r.status === 'crisis') return crisis();
+          if (r && r.status === 'received'){ go('founder'); return; }
+          confirm.disabled = false;
+          confirm.textContent = 'Confirm my RSVP';
+          e.textContent = 'We could not save your RSVP just now, so nothing has been confirmed yet. Please try again.';
+        });
+      });
+      a.appendChild(confirm);
+      backButton(a);
+    },
+
+    founder: function(){
+      head('Fancy a chat?', 'Curious to meet the woman who started it all?');
+      screen.appendChild(el('div', 'note', 'Your Open House RSVP is saved, ' + s.first + '. This next step is optional.'));
+      lede("The WayWard was dreamed up by Sara, our founder, and she'd love to meet you!");
+      lede("If you have questions, want to hear more about the community, or simply fancy a little conversation before the Open House, you're welcome to book some time with her.");
+      lede("And if you'd rather save the introductions for the Open House, that's absolutely fine too.");
+      lede('No interviews, no obligations, and certainly no hoops to jump through.');
+      var a = actions();
+      a.appendChild(button("Yes, let's chat!", 'btn', function(){ go('book'); }));
+      a.appendChild(button("I'll meet everyone at the Open House!", 'btn ghost', function(){
+        save('founder_skipped');
+        s.slot = null;
+        go('done');
+      }));
+    },
+
+    book: function(){
+      head('Time with Sara', 'Choose a time to meet Sara.');
+      lede('Twenty minutes on Google Meet, just the two of you. Times are shown in UAE time (GST).');
+      var list = el('div', 'opts');
+      screen.appendChild(list);
+      list.appendChild(el('p', 'lede', 'Finding times that are free…'));
+      var e = el('p', 'err', ''); screen.appendChild(e);
+      var a = actions();
+      a.appendChild(button('Not yet, thank you', 'btn ghost', function(){
+        save('not_yet');
+        s.slot = null;
+        go('done');
+      }));
+      backButton(a);
+
+      slotsFetch().then(function(r){
+        list.innerHTML = '';
+        var slots = (r && r.slots) || [];
+        if (!slots.length){
+          e.textContent = "No times available right now? No worries. Your Open House place is already confirmed, and you don't need a conversation beforehand.";
+          return;
+        }
+        slots.forEach(function(sl){
+          var b = el('button', 'opt'); b.type = 'button';
+          b.appendChild(document.createTextNode(fmtSlot(sl.start)));
+          b.appendChild(el('small', '', 'Hold this time'));
+          b.onclick = function(){
+            b.disabled = true;
+            bookFetch(sl).then(function(res){
+              if (res && res.status === 'booked'){
+                s.slot = sl; s.booked = true;
+                save('booked', { slot: sl.start }).then(function(){ go('done'); });
+              } else if (res && res.status === 'taken'){
+                e.textContent = 'That time has just been taken. Please choose another.';
+                render();
+              } else {
+                e.textContent = 'We could not hold that time just now. Please try another, or choose "Not yet, thank you" to continue without a conversation.';
+                b.disabled = false;
+              }
+            }).catch(function(){
+              e.textContent = 'We could not reach the calendar just now. Please try again in a moment, or choose "Not yet, thank you" to continue without a conversation.';
+              b.disabled = false;
+            });
+          };
+          list.appendChild(b);
+        });
+      }).catch(function(){
+        list.innerHTML = '';
+        e.textContent = 'We could not reach the calendar just now. Please try again in a moment, or choose "Not yet, thank you" to continue without a conversation.';
+      });
+    },
+
+    done: function(){
+      if (s.slot){
+        head("It's a date!", 'See you soon, ' + s.first + '!');
+        lede('Your conversation with Sara is booked.');
+        lede('Come with your curiosity, your questions, or absolutely nothing prepared. This is simply a chance to connect before the Open House.');
+        var sum = el('div', 'summary');
+        [['When', fmtSlot(s.slot.start)], ['Format', 'Video call on Google Meet'], ['Sent to', s.email]].forEach(function(r){
+          var row = el('div', '');
+          row.appendChild(el('span', '', r[0]));
+          row.appendChild(el('b', '', r[1]));
+          sum.appendChild(row);
+        });
+        screen.appendChild(sum);
+        screen.appendChild(el('div', 'note', 'Your Open House RSVP is also confirmed. Your gathering details will arrive separately!'));
+      } else {
+        head("You're on the list!", 'The mystery awaits, ' + s.first + '!');
+        lede("We're delighted you're coming!");
+        lede("Keep an eye on your " + (s.waOk ? 'inbox and WhatsApp' : 'inbox') + ". We'll be sending everything you need to know, including the secret location for our in-person gathering, 48 hours before the event.");
+        lede('Until then, bring your curiosity and an open mind.');
+        lede('You never quite know what might happen at a WayWard gathering.');
+      }
+      actions().appendChild(button('Back to The WayWard', 'btn ghost', restart));
+    },
+
+    crisis: function(){
+      screen.appendChild(el('div', 'flag',
+        'Thank you for trusting us with something so personal, ' + (s.first || 'friend') + '. ' +
+        "I'm an automated assistant, and I want to make sure you have support from a real person.\n\n" +
+        "If you're in immediate danger or worried you might hurt yourself, please contact emergency services or someone you trust who can be with you right now.\n\n" +
+        'If you\'re in the UAE, you can call 998 for an ambulance, or 999 or 112 for police or any emergency.\n\n' +
+        "You're deserving of care and support, and you don't have to navigate this moment alone."));
+      actions().appendChild(button('Start again', 'btn ghost', restart));
+    }
+  };
+
+  render();
+})();
+</script>
+</body>
+</html>
